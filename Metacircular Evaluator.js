@@ -6,7 +6,12 @@
 //
 // evaluation
 //
+//Recitation q1: make b%e === b to the power of e: change in primitive functions
+//To make b%e%n === b ^ (e^n): change the precedence of repeated operators % in 
+//parse function
 
+//Recitation q2: construct eval_logical to allow lazy evaluation: 
+//false && 0() = false
 function evaluate(component, env) { 
     return is_literal(component)
            ? literal_value(component)
@@ -14,6 +19,8 @@ function evaluate(component, env) {
            ? eval_conditional(component, env)
            : is_sequence(component)
            ? eval_sequence(sequence_statements(component), env)
+           : is_logical_composition(component)
+           ? eval_logical(component, env)
            : is_name(component)
            ? lookup_symbol_value(symbol_of_name(component), env)
            : is_block(component)
@@ -38,6 +45,23 @@ function eval_conditional(comp, env) {
    return is_truthy(evaluate(conditional_predicate(comp), env))
           ? evaluate(conditional_consequent(comp), env)
           : evaluate(conditional_alternative(comp), env);
+}
+
+
+
+function eval_logical(comp, env) {
+    
+    if (is_truthy(logical_symbol(comp) === '||')) {
+        if (is_truthy(evaluate(logical_composition_first_component(comp), env))) {
+            return true;
+        }
+    } else {
+        if (!is_truthy(evaluate(logical_composition_first_component(comp), env))) {
+             return false;
+         }
+    }
+    return is_truthy(evaluate(logical_composition_second_component(comp), env));
+    
 }
 
 function eval_sequence(stmts, env) { 
@@ -386,6 +410,32 @@ function primitive_implementation(fun) {
     return head(tail(fun)); 
 }
 
+// the syntax predicate
+function is_logical_composition(component) {
+    return is_tagged_list(component, "logical_composition");
+}
+
+// selectors
+function logical_symbol(comp) {
+    return list_ref(comp, 1);
+}
+function logical_composition_first_component(comp) {
+    return list_ref(comp, 2);
+}
+function logical_composition_second_component(comp) {
+    return list_ref(comp, 3);
+}
+
+// helper to make a conditional expression
+function make_conditional_expression(pred, cons, alt) {
+    return list("conditional_expression", pred, cons, alt);
+}
+// helper to make a literal value
+function make_literal(value) {
+    return list("literal", value);
+}
+
+
 // setting up global environment
 
 const primitive_functions = list(
@@ -402,15 +452,14 @@ const primitive_functions = list(
        list("-unary",   x     =>   - x  ),
        list("*",       (x, y) => x * y  ),
        list("/",       (x, y) => x / y  ),
-       list("%",       (x, y) => x % y  ),
+       list("%",       (x, y) => math_pow(x, y)  ),   ////////////////////////
        list("===",     (x, y) => x === y),
-       list("!==",     (x, y) => x !== y),
+       list("!==",     (x, y) => x !== y), 
        list("<",       (x, y) => x <   y),
        list("<=",      (x, y) => x <=  y),
        list(">",       (x, y) => x >   y),
        list(">=",      (x, y) => x >=  y),
-       list("!",        x     =>   !   x)
-       );
+       list("!",        x     =>   !   x));
        
 const primitive_function_symbols =
     map(head, primitive_functions);
@@ -456,7 +505,7 @@ function parse_and_evaluate(program) {
 
 // testing
 
-parse_and_evaluate("1 + 2;");
+display(parse("1 + 2;"));
 
 parse_and_evaluate("1; 2; 3;");
 
@@ -478,3 +527,6 @@ function fact(n) {
 }
 fact(4);
 `);
+
+
+parse_and_evaluate('true || 0();'); //3^(2^3) = 6561; (3^2)^3 = 729;

@@ -38,6 +38,7 @@ return stream_map(fun, non_neg_integers);
 const alt_ones = pair(1, () => negate_series(alt_ones));
 const alt_ones1 = pair(1, () => subtract_series(zeros, alt_ones1));
 const alt_ones2 = fun_to_series(x => x % 2 === 0 ? 1 : -1);
+const alt_ones3 = pair(1, () => pair(-1, () => alt_ones));
 
 const e = s => display_list(eval_stream(s,10));
 e(alt_ones2);

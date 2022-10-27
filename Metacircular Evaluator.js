@@ -10,9 +10,17 @@
 //To make b%e%n === b ^ (e^n): change the precedence of repeated operators % in 
 //parse function
 
-//Recitation q2: construct eval_logical to allow lazy evaluation: 
+//Recitation q2: line 52
+//construct eval_logical to allow lazy evaluation: 
 //false && 0() = false
-function evaluate(component, env) { 
+
+//Recitation q3: parse_and_evaluate(‘parse(’parse("1;");’);‘);
+// returns
+// list("application", list("name", "parse"), list(list("literal", "1;")))
+//is the result the innermost parse("1;"); only
+
+//literal values: null, numbers, strings, boolean
+function evaluate(component, env) {  
     return is_literal(component)
            ? literal_value(component)
            : is_conditional(component)
@@ -20,7 +28,7 @@ function evaluate(component, env) {
            : is_sequence(component)
            ? eval_sequence(sequence_statements(component), env)
            : is_logical_composition(component)
-           ? eval_logical(component, env)
+           ? evaluate(logical_to_conditional(component), env)
            : is_name(component)
            ? lookup_symbol_value(symbol_of_name(component), env)
            : is_block(component)
@@ -47,7 +55,16 @@ function eval_conditional(comp, env) {
           : evaluate(conditional_alternative(comp), env);
 }
 
-
+function logical_to_conditional(component) {
+    return logical_symbol(component) === '&&'
+           ? make_conditional_expression(
+               logical_composition_first_component, 
+               logical_composition_second_component,
+               make_literal(false))
+           : make_conditional_expression(logical_composition_first_component, 
+               make_literal(true),
+               logical_composition_second_component);
+}
 
 function eval_logical(comp, env) {
     
@@ -171,6 +188,7 @@ function operator_combination_to_application(component) {
                               list(first_operand(component),
                                    second_operand(component)));
 }
+
 
 // conditionals
 
@@ -452,7 +470,7 @@ const primitive_functions = list(
        list("-unary",   x     =>   - x  ),
        list("*",       (x, y) => x * y  ),
        list("/",       (x, y) => x / y  ),
-       list("%",       (x, y) => math_pow(x, y)  ),   ////////////////////////
+       list("%",       math_pow         ),   ////////////////////////
        list("===",     (x, y) => x === y),
        list("!==",     (x, y) => x !== y), 
        list("<",       (x, y) => x <   y),
